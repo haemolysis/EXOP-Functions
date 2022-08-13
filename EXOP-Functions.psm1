@@ -12,8 +12,8 @@ Write-Host @"
 `$`$`$`$`$`$`$`$\ `$`$ /  `$`$ | `$`$`$`$`$`$  |      `$`$ |  `$`$ |\`$`$`$`$`$`$`$\ `$`$ |`$`$`$`$`$`$`$  |\`$`$`$`$`$`$`$\ `$`$ |      
 \________|\__|  \__| \______/       \__|  \__| \_______|\__|`$`$  ____/  \_______|\__|      
                                                             `$`$ |                          
-                                                            `$`$ |  MADE BY MiCHAEL ~                       
-                                                            \__|                                                                                                   
+                                                            `$`$ | ! MADE BY MiCHAEL ~                       
+                                                            \__|                                                                                                  
                                  
 "@
 
@@ -55,6 +55,9 @@ Write-Host "Get-Command -Module EXOP-Functions " -NoNewline -ForegroundColor Red
 Write-Host "or " -NoNewline
 Write-Host "Show-EXOHelp" -ForegroundColor Red
 
+Write-Host "Need to find the accounts.txt file? Use " -NoNewLine
+Write-Host "Find-AccountsPlease" -ForegroundColor Red
+
 #set  accounts variable to accounts.txt - probs shouldn't set global variables but w/e, used script
 $Script:accounts = "$env:USERPROFILE\Documents\temp\accounts.txt"
 $Script:tempdir = "$env:USERPROFILE\Documents\temp"
@@ -62,6 +65,7 @@ $Script:tempdir = "$env:USERPROFILE\Documents\temp"
 #show commands in this module
 
 function Show-EXOHelp {
+    #get-command -Module EXOP-Functions | Where {$_.CommandType -ne "Alias"} | Select Name
     Write-Host @"
 List of commands: 
 Show-EXOHelp                            : Shows this help
@@ -71,6 +75,11 @@ Run-PreflightChecks                     : Check validity of data set for list of
     
 }
 
+#open the accounts.txt file as well as link it in the terminal window
+function Find-AccountsPlease {
+    Write-Host "Your accounts.txt file is located at $accounts"
+    Start-Process -FilePath $accounts
+}
 #list memebers of a dynamic DL - can't see this in Exchange Online for some reason
 function Show-DynamicDistributionGroupMembers {
     foreach ($account in $accounts) {
@@ -102,12 +111,12 @@ function Show-PreflightChecks {
 
         if ($bad) {
             Write-Host -ForegroundColor Red @"
-++++++++++++++++++++++++ +
-+ +                       
-+ BAD  USERS       +
-+ DETECTED        +
-+ +
-++++++++++++++++++++++++ +
+            +++++++++++++++++++++++++
+            +                       +                       
+            +       BAD  USERS      +
+            +        DETECTED       +
+            +                       +
+            +++++++++++++++++++++++++
 "@
             foreach ($u in $bad) {
                 Write-Host -ForegroundColor Red "$u"
@@ -115,14 +124,97 @@ function Show-PreflightChecks {
         }
         else {
             Write-Host -ForegroundColor Green @"
-++++++++++++++++++++++++ +
-+ +                       
-+ NO BAD USERS      +
-+ +
-++++++++++++++++++++++++ +
+            +++++++++++++++++++++++++
+            +                       +                       
+            +      NO BAD USERS     +
+            +                       +
+            +++++++++++++++++++++++++
 "@
         }
     }
+}
+
+function Add-BulkAccessforUser { 
+    param (
+        [Parameter(Mandatory, HelpMessage = "Who is the target user?")]
+        [string]$Username,
+        
+        #could also make this non-mandatory and default to "both"
+        [Parameter(Mandatory, HelpMessage = "What is the operation? full = add full access only, sendas = add send as only, both = add both permissions")]
+        [ValidateSet("full", 'sendas', 'both')]
+        [string]$AccessType
+    )
+
+    if ($AccessType -eq "full") {
+        Write-Host "Full access for $Username"
+    }
+    elseif ($AccessType -eq "sendas") {
+        Write-Host "Send as access for $Username"
+    }
+    elseif ($AccessType -eq "both") {
+        Write-Host "Both for $Username"
+    }
+    else {
+        Write-Host "error"
+    }
+    
+}
+
+function Remove-BulkAccessforUser { 
+    <#
+    .SYNOPSIS
+        Removes either full access, send as access, or both for a user on a list of mailboxes in accounts.txt
+    .DESCRIPTION
+        Removes either full access, send as access, or both for a user on a list of mailboxes in accounts.txt
+    .EXAMPLE
+        Remove-BulkAccessforUser 
+        Will prompt for a user's UPN and then prompt for either full, sendas, or both
+
+    .EXAMPLE
+        Remove-BulkAccessforUser -Username example@fabrikam.com -AccessType both
+        Removes full and send as access for the user example@fabrikam.com to the mailboxes in accounts.txt
+    .EXAMPLE
+        Remove-BulkAccessforUser -Username example@fabrikam.com -AccessType sendas
+        remove only send-as access
+    #>
+    
+    param (
+        [Parameter(Mandatory, HelpMessage = "Who is the affected user?")]
+        [string]$Username,
+
+        #could also make this non-mandatory and default to "both", might go with this as it's the most common use case
+        [Parameter(Mandatory, HelpMessage = "What is the operation? full = remove full access only, sendas = remove send as only, both = remove both permissions")]
+        [ValidateSet("full", 'sendas', 'both')]
+        [string]$AccessType
+    )
+
+    if ($AccessType -eq "full") {
+        foreach ($target in $accounts) {
+            Write-Host "Removing Full access for $Username to $target"
+            Remove-MailboxPermission -Identity $target -User $Username -AccessRights FullAccess -Confirm:$false
+            Add-MailboxPermission -Identity $target -User $Username -AccessRights FullAccess -InheritanceType All -AutoMapping $false -Confirm:$false
+            Remove-MailboxPermission -Identity $target -User $Username -AccessRights FullAccess -Confirm:$false
+        }
+    }
+    elseif ($AccessType -eq "sendas") {
+        foreach ($target in $accounts) {
+            Write-Host "Removing send-as access for $Username to $target"
+            Remove-RecipientPermission -Identity $target -Trustee $Username -AccessRights SendAs -Confirm:$false
+        }
+    }
+    elseif ($AccessType -eq "both") {
+        foreach ($target in $accounts) {
+            Write-Host "Removing full access and send-as permissions for $Username to $target"
+            Remove-RecipientPermission -Identity $target -Trustee $Username -AccessRights SendAs -Confirm:$false
+            Remove-MailboxPermission -Identity $target -User $Username -AccessRights FullAccess -Confirm:$false
+            Add-MailboxPermission -Identity $target -User $Username -AccessRights FullAccess -InheritanceType All -AutoMapping $false -Confirm:$false
+            Remove-MailboxPermission -Identity $target -User $Username -AccessRights FullAccess -Confirm:$false
+        }
+    }
+    else {
+        Write-Error "Not sure what happened but this is not good"
+    }
+    
 }
 
 Export-ModuleMember -Function * -Alias *
