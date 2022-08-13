@@ -12,14 +12,14 @@ Write-Host @"
 `$`$`$`$`$`$`$`$\ `$`$ /  `$`$ | `$`$`$`$`$`$  |      `$`$ |  `$`$ |\`$`$`$`$`$`$`$\ `$`$ |`$`$`$`$`$`$`$  |\`$`$`$`$`$`$`$\ `$`$ |      
 \________|\__|  \__| \______/       \__|  \__| \_______|\__|`$`$  ____/  \_______|\__|      
                                                             `$`$ |                          
-                                                            `$`$ |  MADE BY MiCHAEL                        
+                                                            `$`$ |  MADE BY MiCHAEL ~                       
                                                             \__|                                                                                                   
                                  
 "@
 
 #cheeky hint to upgrade to PS7
 if ($PSVersionTable.PSVersion -like "6.*" -or $PSVersionTable.PSVersion -like "5.*") {
-    Write-Host "You are using PowerShell $($PSVersionTable.PSVersion). Time to upgrade to PowerShell 7"
+    Write-Host "You are using PowerShell $($PSVersionTable.PSVersion). Consider upgrading to PowerShell 7"
     Write-Host ""
     Write-Host "*************************************************************"
     Write-Host "*                                                           *"
@@ -50,7 +50,10 @@ if (!(Test-Path $env:USERPROFILE\Documents\temp\accounts.txt)) {
     Write-Warning "A blank accounts.txt file has been created in the above location for you"
 }
 
-Write-Host "Lost? Need help? Find commands with Get-Command -Module EXOP-Functions or Show-EXOHelp"
+Write-Host "Lost? Need help? Find commands with " -NoNewline
+Write-Host "Get-Command -Module EXOP-Functions " -NoNewline -ForegroundColor Red
+Write-Host "or " -NoNewline
+Write-Host "Show-EXOHelp" -ForegroundColor Red
 
 #set  accounts variable to accounts.txt - probs shouldn't set global variables but w/e, used script
 $Script:accounts = "$env:USERPROFILE\Documents\temp\accounts.txt"
@@ -60,10 +63,10 @@ $Script:tempdir = "$env:USERPROFILE\Documents\temp"
 
 function Show-EXOHelp {
     Write-Host @"
-    List of commands: 
-    Show-EXOHelp                            : Shows this help
-    Show-DynamicDistributionGroupMembers    : Show members of a dynamic DL
-    Run-PreflightChecks                     : Check validity of data set for list of users
+List of commands: 
+Show-EXOHelp                            : Shows this help
+Show-DynamicDistributionGroupMembers    : Show members of a dynamic DL
+Run-PreflightChecks                     : Check validity of data set for list of users
 "@
     
 }
@@ -99,12 +102,12 @@ function Show-PreflightChecks {
 
         if ($bad) {
             Write-Host -ForegroundColor Red @"
-            +++++++++++++++++++++++++
-            +                       +                       
-            +      BAD  USERS       +
-            +       DETECTED        +
-            +                       +
-            +++++++++++++++++++++++++
+++++++++++++++++++++++++ +
++ +                       
++ BAD  USERS       +
++ DETECTED        +
++ +
+++++++++++++++++++++++++ +
 "@
             foreach ($u in $bad) {
                 Write-Host -ForegroundColor Red "$u"
@@ -112,11 +115,11 @@ function Show-PreflightChecks {
         }
         else {
             Write-Host -ForegroundColor Green @"
-+++++++++++++++++++++++++
-+                       +                       
-+     NO BAD USERS      +
-+                       +
-+++++++++++++++++++++++++
+++++++++++++++++++++++++ +
++ +                       
++ NO BAD USERS      +
++ +
+++++++++++++++++++++++++ +
 "@
         }
     }
