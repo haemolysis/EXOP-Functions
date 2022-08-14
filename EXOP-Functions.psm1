@@ -146,13 +146,26 @@ function Add-BulkAccessforUser {
     )
 
     if ($AccessType -eq "full") {
-        Write-Host "Full access for $Username"
+        Write-Host "Adding full access for $Username"
+        foreach ($target in $accounts) {
+            Add-MailboxPermission -Identity $target -User $Username -AccessRights FullAccess -InheritanceType All -AutoMapping $true -Confirm:$false
+            Write-Host "$Username added to $target"
+        }
     }
     elseif ($AccessType -eq "sendas") {
-        Write-Host "Send as access for $Username"
+        Write-Host "Adding send as access for $Username"
+        foreach ($target in $accounts) {
+            Add-RecipientPermission -Identity $target -Trustee $Username -AccessRights SendAs -Confirm:$false
+            Write-Host "$Username added to $target"
+        }
     }
     elseif ($AccessType -eq "both") {
-        Write-Host "Both for $Username"
+        Write-Host "Adding send as and full access for $Username"
+        foreach ($target in $accounts) {
+            Add-MailboxPermission -Identity $target -User $Username -AccessRights FullAccess -InheritanceType All -AutoMapping $true -Confirm:$false
+            Add-RecipientPermission -Identity $target -Trustee $Username -AccessRights SendAs -Confirm:$false
+            Write-Host "$Username added to $target"
+        }
     }
     else {
         Write-Host "error"
